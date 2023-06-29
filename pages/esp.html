@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Ardumicrolab</title>
+
+  <style>
+    div {
+   padding: 30px;
+    border: dashed red;
+  }
+  </style>
+
+</head>
+<body>
+ <h2> Здесь расположены небольшие скетчи (прошивки) для esp8266 для быстрой проверки различных плат и пр.</h2>
+ <a href="/index.html" ><img src="/images/wemos_index.jpg" width="320"  alt="lorem"></a>
+ <div > <p> Популярный Blink для могргания светодиодом встроенным в плату, некоторые считают что моргание нечто примитивное, но как вам такое весь интернет это могание светодиодом, предача 0 и 1 ! </p>
+   <pre>
+    <code style = "color: green"   >
+      void setup() {           // функция настроек и разового ввода данных
+        pinMode(2, OUTPUT);    // инициализация контакта Wemos D1 Mini светодиод на GPIO2 (D4)
+      }
+      void loop() {            // Функция бесконечного цикла
+        digitalWrite(2, 1);    // светодиод загорается
+        delay(1000);           // ожидание в течение двух секунд
+        digitalWrite(2, 0);    // светодиод гаснет
+        delay(500);            // ожидание в течение двух секунд
+      }
+  }</code>
+</pre>
+<img src="/images/esp_blink.jpg" width="800"  alt="lorem">
+</div>
+
+<a href="https://alexgyver.ru/lessons/esp8266" > Хорошее объяснение работы с esp </a>
+</body>
+</html>

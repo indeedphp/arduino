@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>title</title>
+
+ <style>
+    div {
+   padding: 30px;
+    border: dashed red;
+  }
+  </style>
+
+</head>
+<body>
+ <h2> Здесь расположены небольшие скетчи (прошивки) для ардуино для быстрой проверки различных плат и пр.</h2>
+<a href="/index.html" > <img src="/images/arduino_index.jpg" width="320"  alt="lorem"></a>
+ <div> <p> Популярный Blink для могргания светодиодом встроенным в плату, некоторые считают что моргание нечто примитивное, но как вам такое весь интернет это могание светодиодом, предача 0 и 1 ! </p>
+   <pre>
+    <code style = "color: green"   >
+    void setup() {         // функция настроек и разового ввода данных
+    pinMode(13, OUTPUT);   // Пин 13 настраиваем на выход
+    }
+    void loop() {          // Функция бесконечного цикла
+    digitalWrite(13, 1);   // На пине 13 к которому подключен светодиод устанавливаем 1 это +5 вольт
+    delay(1000);           // ждем 1000 милисекунд - 1секунду
+    digitalWrite(13, 0);   // На пине 13 к которому подключен светодиод устанавливаем 0 это 0 вольт
+    delay(1000);           // ждем 1000 милисекунд - 1секунду
+  }</code>
+</pre>
+<img src="/images/arduino_blink.jpg" width="800"  alt="lorem">
+</div>
+</body>
+</html>
