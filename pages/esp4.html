@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ardylab</title>
+  <link rel="shortcut icon"href="../images/myicon.ico">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <header>
+    <table width="1250" >
+     <tr>
+      <td width="150"><a href="../index.html"><img src="../images/logo.jpg" class="leftfoto"></a></td>
+
+      <td width="700"><p>Здесь расположены небольшие скетчи (прошивки) для esp8266 для быстрой проверки различных плат и пр.</p></td>
+
+      <td>
+        <div>
+          <select class="box" onchange="document.location=this.options[this.selectedIndex].value" >
+            <option value=""> Оглавление </option>
+            <option VALUE="../pages/esp.html#esp_blink">Мигание светодиодом</option>
+            <option VALUE="../pages/esp.html#speaker_k_esp">Подключение пищалки</option>
+            <option VALUE="../pages/esp.html#esp_random_serial">Монитор порта и случайное число</option>
+            <option VALUE="../pages/esp.html#esp_analog">Аналоговый порт АЦП</option>
+            <option VALUE="../pages/esp.html#esp_button">Подключение кнопки</option>
+            <option VALUE="../pages/esp2.html#esp_serial_out">Управление с монитора порта</option>
+            <option VALUE="../pages/esp2.html#esp_pwm">Широтно импульсная модуляция ШИМ</option>
+            <option VALUE="../pages/esp2.html#esp_pwm_frequency">Измеритель частоты</option>
+            <option VALUE="../pages/esp2.html#esp_EEPROM_write">Запись в EEPROM</option>
+            <option VALUE="../pages/esp2.html#esp_EEPROM_read">Чтение из EEPROM</option>
+            <option VALUE="../pages/esp3.html#esp_interrupt">Прерывания в WeMos D1 mini</option>
+            <option VALUE="../pages/esp3.html#esp_oled_Hello world">Подключаем дисплей OLED 128x64</option>
+            <option VALUE="../pages/esp3.html#esp_IR_control">Подключаем ИК приемник Д.У.</option>
+            <option VALUE="../pages/esp3.html#esp_IR_control_blink">Управляем с ИК Д.У. </option>
+            <option VALUE="../pages/esp3.html#esp_ibutton">Считываем код ключа ibutton</option>
+            <option VALUE="../pages/esp4.html#esp_ibutton_blink">Работаем с ключем ibutton</option>
+            <option VALUE="../pages/esp4.html#esp_PWM_blink">Подключаем транзистор MOSFET</option>
+          </select></div>
+        </div></td>
+      </tr>
+    </table>
+  </header>
+
+
+  <div class="divdiv d">
+   <a href="../pages/esp.html" class="pagination">1</a>
+   <a href="../pages/esp2.html" class="pagination">2</a>
+   <a href="../pages/esp3.html" class="pagination">3</a>
+   <a href="../pages/esp4.html" class="pagination color">4</a>
+   <a href="../pages/404.html" class="pagination">5</a>
+ </div>
+
+ <div class="divdiv di"><a name="esp_ibutton_blink"></a><p>В <a href="../pages/esp3.html#esp_ibutton"> прошлом примере </a>  мы разобрались с тем как считать код электронного ключа ibutton, теперь разберемся как использовать на деле работу ключа с ЕСП. Для начала нам надо взять код ключа (как взять код в прошлом примере) и по битам вставить в строку в скетче как на рисунке, далее прислоняем ключ и на д4 у нас появляется +3.3 вольта и тухнет светодиод на плате, так как у него инверсная схема включения, затем через две секунды на пине д4 будет 0 вольт и светодиод вновь загорится. В следующем скетче разберемся с полевым транзистором он позволит включать мощные нагрузки такие как замок или лампы автомобиля и можно будет добавить этот скетч с ibutton чтоб собрать полноценное устройство. </p>
+
+
+  <pre class="ide"><code>
+    <span class="ide-system-keyword">#include</span> &lt;OneWire.h&gt;              <span class="ide-line-comment">// подключаем библиотеку для работы с протоколом ванваир</span>
+    OneWire  ds(D2);                  <span class="ide-line-comment">// д2 пин на WeMos D1 mini</span>
+    byte i;                           <span class="ide-line-comment">// создаем переменную для счетчика информации с ключа</span>
+    byte addr[8];                     <span class="ide-line-comment">// создаем переменную для массива с восемью значениями (8 переменных в одной)</span>
+    byte val;                         <span class="ide-line-comment">// создаем переменную для количества правильных проверок</span>
+    byte key[8] = {0x1, 0x94, 0x7B, 0x81, 0xB, 0x0, 0x0, 0xDA}; <span class="ide-line-comment">// код нашего ключа</span>
+    <span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>(<span class="ide-keyword">void</span>) {                <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+    <span class="ide-platform-function">pinMode</span>(D4, <span class="ide-keyword">OUTPUT</span>);            <span class="ide-line-comment">// настраиваем пин D4 на выход Wemos D1 Mini инверсный светодиод</span>
+  }
+  <span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>(<span class="ide-keyword">void</span>) {                 <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  byte val = 0;                   <span class="ide-line-comment">// обнуляем переменную для количества правильных проверок</span>
+  <span class="ide-system-keyword">if</span> (!ds.search(addr)) {         <span class="ide-line-comment">// если обнулен пин ds(D4) считываем 8 бит в массив, если считалось то идем дальше</span>
+  ds.reset_search();            <span class="ide-line-comment">// останавливаем считывание с ds(D4)</span>
+  <span class="ide-system-keyword">return</span>;                       <span class="ide-line-comment">// прекращаем вычисления</span>
+}
+<span class="ide-system-keyword">for</span> ( i = 0; i &lt; 8; i++) {      <span class="ide-line-comment">// цикл на 8 действий</span>
+<span class="ide-system-keyword">if</span> (addr[i] == key[i]) val++; <span class="ide-line-comment">// если считанный бит равен биту из ключа то к переменной val прибавляем 1</span>
+}
+<span class="ide-system-keyword">if</span> (val == 8) {                 <span class="ide-line-comment">// если переменная val равна 8 (8 правильных битов ключа)</span>
+<span class="ide-platform-function">digitalWrite</span>(D4, 1);          <span class="ide-line-comment">// светодиод гаснет на пине д4 +3.3 вольта</span>
+<span class="ide-platform-function">delay</span>(2000);                  <span class="ide-line-comment">// пауза 2 секунды</span>
+<span class="ide-platform-function">digitalWrite</span>(D4, 0);          <span class="ide-line-comment">// светодиод загорается на пине д4 0 вольт</span>
+}
+ds.reset();                     <span class="ide-line-comment">// обновление считывания с ds(D4)</span>
+<span class="ide-platform-function">delay</span>(100);                     <span class="ide-line-comment">// пауза 0.1 секунда</span>
+}
+</code></pre>
+
+<br/>
+<p> Подключаем по схеме.</p>
+<img src="../images/esp_ibutton.jpg" class="foc" tabindex="1">
+<p>Из монитора порта с <a href="../pages/esp3.html#esp_ibutton"> прошлого примера </a> берем код ключа и вставляем в скетч.</p>
+<img src="../images/esp_ibutton_blink.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+ <div class="divdiv di"><a name="esp_PWM_blink"></a><p>Подключение модуля полевого транзистора (MOSFET) к ЕСП.  <a href="../pages/esp3.html#esp_ibutton_blink"> В прошлом примере </a> про электронный ключ ibutton я пообещал что расскажу про подключение MOSFET транзистора для управления различными мощными нагрузками такими как электромагнитные замки, лампы и пр. Для начала возьмем готовый модуль транзистора MOSFET irf520 и самый простой <a href="../pages/esp.html#esp_blink"> скетч для мигания светодиодом </a> который использовался в самом начале примеров, подключим по схеме и все мы можем управлять различными нагрузками в режиме включить выключить, а вследующем примере используем уже известный скетч ШИМа и добавим к нему плавное включение, далее сами соберем схему шим модуля которая будет мощнее в 10 раз!<br/>
+ ЕСЛИ НЕ ЗАЛИВАЕСЯ СКЕТЧ В ЕСП ОТКЛЮЧИТЕ МОДУЛЬ ВРЕМЕННО ОТ ЕСП</p>
+
+
+ <pre class="ide"><code>
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {       <span class="ide-line-comment">   // функция настроек и разового ввода данных</span>
+<span class="ide-platform-function">pinMode</span>(D4, <span class="ide-keyword">OUTPUT</span>);    <span class="ide-line-comment">// инициализация контакта D4 с подключенным инверсным светодиодом</span>
+}
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>() {         <span class="ide-line-comment">  // запускаем бесконечную обработку кода (цикл)</span>
+<span class="ide-platform-function">digitalWrite</span>(D4, 1);    <span class="ide-line-comment">// светодиод тухнет а лампа загорается</span>
+<span class="ide-platform-function">delay</span>(1000);            <span class="ide-line-comment">// ожидание в течение 1 секунда</span>
+<span class="ide-platform-function">digitalWrite</span>(D4, 0);    <span class="ide-line-comment">// светодиод горит а лампа тухнет</span>
+<span class="ide-platform-function">delay</span>(2000);            <span class="ide-line-comment">// ожидание в течение 2 секунд</span>
+}
+
+</code></pre>
+
+<br/>
+<p> Подключаем по схеме.</p>
+<img src="../images/esp_PWM_blink.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+<div class="divdiv d">
+ <a href="../pages/esp.html" class="pagination">1</a>
+ <a href="../pages/esp2.html" class="pagination">2</a>
+ <a href="../pages/esp3.html" class="pagination">3</a>
+ <a href="../pages/esp4.html" class="pagination color">4</a>
+ <a href="../pages/404.html" class="pagination">5</a>
+</div>
+<footer>
+
+</footer>
+</body>
+</html>
+
+
