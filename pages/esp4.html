@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ardylab</title>
+  <link rel="shortcut icon"href="../images/myicon.ico">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <header>
+    <table width="1250" >
+     <tr>
+      <td width="150"><a href="../index.html"><img src="../images/logo.jpg" class="leftfoto"></a></td>
+
+      <td width="700"><p>Здесь расположены небольшие скетчи (прошивки) для esp8266 для быстрой проверки различных плат и пр.</p></td>
+
+      <td>
+        <div>
+          <select class="box" onchange="document.location=this.options[this.selectedIndex].value" >
+            <option value=""> Оглавление </option>
+            <option VALUE="../pages/esp.html#esp_blink">Мигание светодиодом</option>
+            <option VALUE="../pages/esp.html#speaker_k_esp">Подключение пищалки</option>
+            <option VALUE="../pages/esp.html#esp_random_serial">Монитор порта и случайное число</option>
+            <option VALUE="../pages/esp.html#esp_analog">Аналоговый порт АЦП</option>
+            <option VALUE="../pages/esp.html#esp_button">Подключение кнопки</option>
+            <option VALUE="../pages/esp2.html#esp_serial_out">Управление с монитора порта</option>
+            <option VALUE="../pages/esp2.html#esp_pwm">Широтно импульсная модуляция ШИМ</option>
+            <option VALUE="../pages/esp2.html#esp_pwm_frequency">Измеритель частоты</option>
+            <option VALUE="../pages/esp2.html#esp_EEPROM_write">Запись в EEPROM</option>
+            <option VALUE="../pages/esp2.html#esp_EEPROM_read">Чтение из EEPROM</option>
+            <option VALUE="../pages/esp3.html#esp_interrupt">Прерывания в WeMos D1 mini</option>
+            <option VALUE="../pages/esp3.html#esp_oled_Hello world">Подключаем дисплей OLED 128x64</option>
+            <option VALUE="../pages/esp3.html#esp_IR_control">Подключаем ИК приемник Д.У.</option>
+            <option VALUE="../pages/esp3.html#esp_IR_control_blink">Управляем с ИК Д.У. </option>
+            <option VALUE="../pages/esp3.html#esp_ibutton">Считываем код ключа ibutton</option>
+            <option VALUE="../pages/esp4.html#esp_ibutton_blink">Работаем с ключем ibutton</option>
+            <option VALUE="../pages/esp4.html#esp_PWM_blink">Подключаем транзистор MOSFET</option>
+            <option VALUE="../pages/esp4.html#esp_PWM_blink_smoothly">Плавный пуск на MOSFETе</option>
+            <option VALUE="../pages/esp4.html#esp_433_Receive">Считываем коды пульта 433Мгц</option>
+            <option VALUE="../pages/esp4.html#esp_433_Receive_blink">Управляем пультом 433Мгц</option>
+          </select></div>
+        </div></td>
+      </tr>
+    </table>
+  </header>
+
+
+  <div class="divdiv d">
+   <a href="../pages/esp.html" class="pagination">1</a>
+   <a href="../pages/esp2.html" class="pagination">2</a>
+   <a href="../pages/esp3.html" class="pagination">3</a>
+   <a href="../pages/esp4.html" class="pagination color">4</a>
+   <a href="../pages/404.html" class="pagination">5</a>
+ </div>
+
+ <div class="divdiv di"><a name="esp_ibutton_blink"></a><p>В <a href="../pages/esp3.html#esp_ibutton"> прошлом примере </a>  мы разобрались с тем как считать код электронного ключа ibutton, теперь разберемся как использовать на деле работу ключа с ЕСП. Для начала нам надо взять код ключа (как взять код в прошлом примере) и по битам вставить в строку в скетче как на рисунке, далее прислоняем ключ и на д4 у нас появляется +3.3 вольта и тухнет светодиод на плате, так как у него инверсная схема включения, затем через две секунды на пине д4 будет 0 вольт и светодиод вновь загорится. В следующем скетче разберемся с полевым транзистором он позволит включать мощные нагрузки такие как замок или лампы автомобиля и можно будет добавить этот скетч с ibutton чтоб собрать полноценное устройство. </p>
+
+
+  <pre class="ide"><code>
+    <span class="ide-system-keyword">#include</span> &lt;OneWire.h&gt;              <span class="ide-line-comment">// подключаем библиотеку для работы с протоколом ванваир</span>
+    OneWire  ds(D2);                  <span class="ide-line-comment">// д2 пин на WeMos D1 mini</span>
+    byte i;                           <span class="ide-line-comment">// создаем переменную для счетчика информации с ключа</span>
+    byte addr[8];                     <span class="ide-line-comment">// создаем переменную для массива с восемью значениями (8 переменных в одной)</span>
+    byte val;                         <span class="ide-line-comment">// создаем переменную для количества правильных проверок</span>
+    byte key[8] = {0x1, 0x94, 0x7B, 0x81, 0xB, 0x0, 0x0, 0xDA}; <span class="ide-line-comment">// код нашего ключа</span>
+    <span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>(<span class="ide-keyword">void</span>) {                <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+    <span class="ide-platform-function">pinMode</span>(D4, <span class="ide-keyword">OUTPUT</span>);            <span class="ide-line-comment">// настраиваем пин D4 на выход Wemos D1 Mini инверсный светодиод</span>
+  }
+  <span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>(<span class="ide-keyword">void</span>) {                 <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  byte val = 0;                   <span class="ide-line-comment">// обнуляем переменную для количества правильных проверок</span>
+  <span class="ide-system-keyword">if</span> (!ds.search(addr)) {         <span class="ide-line-comment">// если обнулен пин ds(D4) считываем 8 бит в массив, если считалось то идем дальше</span>
+  ds.reset_search();            <span class="ide-line-comment">// останавливаем считывание с ds(D4)</span>
+  <span class="ide-system-keyword">return</span>;                       <span class="ide-line-comment">// прекращаем вычисления</span>
+}
+<span class="ide-system-keyword">for</span> ( i = 0; i &lt; 8; i++) {      <span class="ide-line-comment">// цикл на 8 действий</span>
+<span class="ide-system-keyword">if</span> (addr[i] == key[i]) val++; <span class="ide-line-comment">// если считанный бит равен биту из ключа то к переменной val прибавляем 1</span>
+}
+<span class="ide-system-keyword">if</span> (val == 8) {                 <span class="ide-line-comment">// если переменная val равна 8 (8 правильных битов ключа)</span>
+<span class="ide-platform-function">digitalWrite</span>(D4, 1);          <span class="ide-line-comment">// светодиод гаснет на пине д4 +3.3 вольта</span>
+<span class="ide-platform-function">delay</span>(2000);                  <span class="ide-line-comment">// пауза 2 секунды</span>
+<span class="ide-platform-function">digitalWrite</span>(D4, 0);          <span class="ide-line-comment">// светодиод загорается на пине д4 0 вольт</span>
+}
+ds.reset();                     <span class="ide-line-comment">// обновление считывания с ds(D4)</span>
+<span class="ide-platform-function">delay</span>(100);                     <span class="ide-line-comment">// пауза 0.1 секунда</span>
+}
+</code></pre>
+
+<br/>
+<p> Подключаем по схеме.</p>
+<img src="../images/esp_ibutton.jpg" class="foc" tabindex="1">
+<p>Из монитора порта с <a href="../pages/esp3.html#esp_ibutton"> прошлого примера </a> берем код ключа и вставляем в скетч.</p>
+<img src="../images/esp_ibutton_blink.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+ <div class="divdiv di"><a name="esp_PWM_blink"></a><p>Подключение модуля полевого транзистора (MOSFET) к ЕСП.  <a href="../pages/esp3.html#esp_ibutton_blink"> В прошлом примере </a> про электронный ключ ibutton я пообещал что расскажу про подключение MOSFET транзистора для управления различными мощными нагрузками такими как электромагнитные замки, лампы и пр. Для начала возьмем готовый модуль транзистора MOSFET irf520 и самый простой <a href="../pages/esp.html#esp_blink"> скетч для мигания светодиодом </a> который использовался в самом начале примеров, подключим по схеме и все мы можем управлять различными нагрузками в режиме включить выключить, а <a href="../pages/esp4.html#esp_PWM_blink_smoothly"> в следующем примере </a>  используем уже известный скетч ШИМа и добавим к нему плавное включение, далее сами соберем схему шим модуля.<br/>
+ ЕСЛИ НЕ ЗАЛИВАЕСЯ СКЕТЧ В ЕСП, ОТКЛЮЧИТЕ МОДУЛЬ ВРЕМЕННО ОТ ЕСП</p>
+
+
+ <pre class="ide"><code>
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {       <span class="ide-line-comment">   // функция настроек и разового ввода данных</span>
+<span class="ide-platform-function">pinMode</span>(D4, <span class="ide-keyword">OUTPUT</span>);    <span class="ide-line-comment">// инициализация контакта D4 с подключенным инверсным светодиодом</span>
+}
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>() {         <span class="ide-line-comment">  // запускаем бесконечную обработку кода (цикл)</span>
+<span class="ide-platform-function">digitalWrite</span>(D4, 1);    <span class="ide-line-comment">// светодиод тухнет а лампа загорается</span>
+<span class="ide-platform-function">delay</span>(1000);            <span class="ide-line-comment">// ожидание в течение 1 секунда</span>
+<span class="ide-platform-function">digitalWrite</span>(D4, 0);    <span class="ide-line-comment">// светодиод горит а лампа тухнет</span>
+<span class="ide-platform-function">delay</span>(2000);            <span class="ide-line-comment">// ожидание в течение 2 секунд</span>
+}
+
+</code></pre>
+
+<br/>
+<p> Подключаем по схеме.</p>
+<img src="../images/esp_PWM_blink.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+ <div class="divdiv di"><a name="esp_PWM_blink_smoothly"></a><p>Продолжаем эксперименты с транзистором MOSFET на плате ЕСП. В <a href="../pages/esp4.html#esp_PWM_blink"> прошлом примере </a> был самый простой скетч и готовый модуль, теперь у нас будет с помощью ШИМа плавный пуск, далее рабочий режим, и выключение. Также будем выводить диагностическую информацию о режимах работы в монитор порта. Транзистор возьмем тот же (irf520) что и в модуле так как мало какие транзисторы MOSFET работают от напряжения 3.3 вольта, хоть и на многих заявлено открытие от 2 вольт, а на Ардуино нано такой проблемы нет там 5 вольт выходы и к ним можно подключить хоть транзистор MOSFET на 100 ампер.<br/>
+ ЕСЛИ ПРОБЛЕМЫ С ЗАГРУЗКОЙ СКЕТЧА В ЕСП, ОТКЛЮЧИТЕ МОДУЛЬ ВРЕМЕННО ОТ ЕСП</p>
+
+
+<pre class="ide"><code>
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>()             <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+{
+  <span class="ide-platform-function">pinMode</span>(D4, <span class="ide-keyword">OUTPUT</span>);   <span class="ide-line-comment">// д4 пин с инверсным светодиодом настраиваем на выход</span>
+  analogWriteFreq(100);  <span class="ide-line-comment">// выставляем частоту (100.. 40000 Гц)</span>
+  <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">begin</span> (9600);   <span class="ide-line-comment">// настраиваем скорость монитора порта</span>
+}
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>()              <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+{
+  <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">println</span> (<span class="ide-string">&quot;Плавный пуск&quot;</span>); <span class="ide-line-comment">//выводим в монитор порта &quot;Плавный пуск&quot;</span>
+  <span class="ide-system-keyword">for</span> (byte i = 0; i &lt;= 254; i++ ) <span class="ide-line-comment">// цикл for (переменную i ставим в ноль; если i меньше 254 продолжаем цикл; прибавляем 1 к i)</span>
+  {                      <span class="ide-line-comment">// цикл for начинается от этой скобки</span>
+    <span class="ide-platform-function">analogWrite</span>(D4, i);  <span class="ide-line-comment">// включаем работу шим на пин д4, 0-254 скважность передаем через i</span>
+    <span class="ide-platform-function">delay</span>(25);           <span class="ide-line-comment">// пауза 0.25 секунды</span>
+  }                      <span class="ide-line-comment">// цикл for заканчивается на этой скобке , так и крутится пока i не станет 254 и программа идет дальше</span>
+  <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">println</span> (<span class="ide-string">&quot;Рабочий режим&quot;</span>);  <span class="ide-line-comment">//выводим в монитор порта &quot;Рабочий режим&quot;</span>
+  <span class="ide-platform-function">digitalWrite</span>(D4, 1);               <span class="ide-line-comment">// подаем на пин д4 3.3 вольта</span>
+  <span class="ide-platform-function">delay</span>(10000);                      <span class="ide-line-comment">// ждем 10 секунд</span>
+  <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">println</span> (<span class="ide-string">&quot;Выключено&quot;</span>);      <span class="ide-line-comment">//выводим в монитор порта &quot;Выключено&quot;</span>
+  <span class="ide-platform-function">digitalWrite</span>(D4, 0);               <span class="ide-line-comment">// выставляем пин д4 в 0 вольт</span>
+  <span class="ide-platform-function">delay</span>(5000);                       <span class="ide-line-comment">//ждем 5 секунд</span>
+}
+
+</code></pre>
+
+<br/>
+<p> Подключаем по схеме.</p>
+<img src="../images/esp_PWM_blink_smoothly.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+ <div class="divdiv di"><a name="esp_433_Receive"></a><p>Подключаем модуль 433МГц к ЕСП и считываем коды пульта. В этом примере поработаем с популярным модулем для приема сигнала на частоте 433Мгц, обычно данный модуль идет в комплекте с модулем передатчика но мы будем только принимать сигналы с пульта. Пульт самый обычный тоже на 433МГц таких пультов великое множество у них от 2 до 8 кнопок, данную связку (пульт и приемник) используют в различных центральных замках автомобиля, в шлагбаумах, воротах и многом другом, в отличии от ИК пультов с ИК приемниками, им не надо прямую видимость и яркое солнце не влияет на прием сигнала. В этом скетче будем считывать коды пульта и выводить их в монитор порта, в следующем будем использовать пульт по назначению - включать что нибудь дистанционно. </p>
+
+
+<pre class="ide"><code>
+<span class="ide-system-keyword">#include</span> &lt;RCSwitch.h&gt;           <span class="ide-line-comment">// подключаем библиотеку RCSwitch.h берем её в Инструменты/управлять библиотеками</span>
+RCSwitch mySwitch = RCSwitch(); <span class="ide-line-comment">// объявили объект(переменные+функции) для работы с передатчиком и назвали его mySwitch</span>
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {                  <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+  <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">begin</span>(9600);           <span class="ide-line-comment">// настраиваем скорость монитора порта</span>
+  mySwitch.enableReceive(D2);   <span class="ide-line-comment">// включаем приемник и указываем пин для работы (д2) </span>
+}
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>() {                   <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  <span class="ide-system-keyword">if</span> (mySwitch.available()) {   <span class="ide-line-comment">// если приемник принял какие либо данные</span>
+    <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">println</span>(mySwitch.getReceivedValue());  <span class="ide-line-comment">// обрабатываем и выводим полученные данные в монитор порта</span>
+    mySwitch.resetAvailable();  <span class="ide-line-comment">// обнуляем данные в объекте</span>
+  }
+}
+
+</code></pre>
+
+<br/>
+<p> Подключаем по схеме.</p>
+<img src="../images/esp_433_Receive_diagram.jpg" class="foc" tabindex="1">
+
+<p> Открываем монитор порта и нажимаем кнопки на пульте (если нет антенны на модуле 433МГц то подносим пульт вплотную).</p>
+<img src="../images/esp_433_Receive.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+ <div class="divdiv di"><a name="esp_433_Receive_blink"></a><p> В <a href="../pages/esp4.html#esp_433_Receive"> прошлом примере </a> мы подключали модуль 433 МГц к ЕСП и считывали коды кнопок с пульта, а в этом примере будем управлять с пульта встроенным светодиодом. Светодиод у нас находится на пине д4 и вы можете управлять этим пином электромагнитным замком двери, центральным замком автомобиля или освещением и пр. подключив транзистор MOSFET к ЕСП как в <a href="../pages/esp4.html#esp_PWM_blink"> этом примере </a>, позже рассмотрим подключение к ЕСП электромагнитных реле для управления мощной нагрузкой которыми удобно управлять с пульта и реализовать реверс на моторе. В этом скетче мы просто берем считанный код кнопки пульта и занесем его в программу, далее загружаем программу в ЕСП и если код пришедший с пульта совпал у нас потухнет встроенный светодиод затем пауза 3 секунды и светодиод вновь загорится. Другие кнопки пульта подключаются в программе аналогично первой, на них можно настроить другие пины ЕСП или другие алгоритмы работы пина например частое мигание светодиодом. </p>
+
+
+<pre class="ide"><code>
+<span class="ide-system-keyword">#include</span> &lt;RCSwitch.h&gt;           <span class="ide-line-comment">// подключаем библиотеку RCSwitch.h берем в Инструменты/управлять библиотеками</span>
+RCSwitch mySwitch = RCSwitch(); <span class="ide-line-comment">// объявили объект(переменные+функции) для работы с передатчиком и назвали его mySwitch</span>
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {                  <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+  mySwitch.enableReceive(D2);   <span class="ide-line-comment">// включаем приемник и указываем пин для работы (д2)</span>
+  <span class="ide-platform-function">pinMode</span>(D4, <span class="ide-keyword">OUTPUT</span>);          <span class="ide-line-comment">// подключаем пин D4 с инверсным светодиодом (светодиод светит)</span>
+}
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>() {                   <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  <span class="ide-system-keyword">if</span> (mySwitch.available()) {   <span class="ide-line-comment">// если приемник принял какие либо данные</span>
+    <span class="ide-system-keyword">if</span> (mySwitch.getReceivedValue() == 11639073) {  <span class="ide-line-comment">// обрабатываем и сравниваем полученные данные с нашим кодом</span>
+      <span class="ide-platform-function">digitalWrite</span>(D4, 1);      <span class="ide-line-comment">// светодиод тухнет а на пине д4 +3.3вольта</span>
+      <span class="ide-platform-function">delay</span>(3000);              <span class="ide-line-comment">// ожидание в течение 1 секунда</span>
+      <span class="ide-platform-function">digitalWrite</span>(D4, 0);      <span class="ide-line-comment">// светодиод горит а на пине д4 0 вольт</span>
+    }
+    mySwitch.resetAvailable();  <span class="ide-line-comment">// обнуляем данные в объекте</span>
+  }
+}
+
+</code></pre>
+
+<br/>
+<p> Подключаем по схеме.</p>
+<img src="../images/esp_433_Receive_diagram.jpg" class="foc" tabindex="1">
+
+<p> Нажимаем кнопки на пульте (если нет антенны на модуле 433МГц то подносим пульт вплотную).</p>
+<img src="../images/esp_433_Receive_blink.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+
+
+
+<div class="divdiv d">
+ <a href="../pages/esp.html" class="pagination">1</a>
+ <a href="../pages/esp2.html" class="pagination">2</a>
+ <a href="../pages/esp3.html" class="pagination">3</a>
+ <a href="../pages/esp4.html" class="pagination color">4</a>
+ <a href="../pages/404.html" class="pagination">5</a>
+</div>
+<footer>
+
+</footer>
+</body>
+</html>
+
+
