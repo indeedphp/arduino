@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>ardylab</title>
+  <link rel="shortcut icon"href="../images/myicon.ico">
+  <link rel="stylesheet" href="../style.css">
+</head>
+<body>
+
+  <header>
+    <table width="1250" >
+     <tr>
+      <td width="150"><a href="../index.html"><img src="../images/logo.jpg" class="leftfoto"></a></td>
+
+      <td width="700"><p>Здесь расположены небольшие скетчи (прошивки) для esp8266 для быстрой проверки различных плат и пр.</p></td>
+
+      <td>
+        <div>
+          <select class="box" onchange="document.location=this.options[this.selectedIndex].value" >
+            <option value=""> Оглавление </option>
+            <option VALUE="../pages/esp.html#esp_blink">Мигание светодиодом</option>
+            <option VALUE="../pages/esp.html#speaker_k_esp">Подключение пищалки</option>
+            <option VALUE="../pages/esp.html#esp_random_serial">Монитор порта и случайное число</option>
+            <option VALUE="../pages/esp.html#esp_analog">Аналоговый порт АЦП</option>
+            <option VALUE="../pages/esp.html#esp_button">Подключение кнопки</option>
+            <option VALUE="../pages/esp2.html#esp_serial_out">Управление с монитора порта</option>
+            <option VALUE="../pages/esp2.html#esp_pwm">Широтно импульсная модуляция ШИМ</option>
+            <option VALUE="../pages/esp2.html#esp_pwm_frequency">Измеритель частоты</option>
+            <option VALUE="../pages/esp2.html#esp_EEPROM_write">Запись в EEPROM</option>
+            <option VALUE="../pages/esp2.html#esp_EEPROM_read">Чтение из EEPROM</option>
+            <option VALUE="../pages/esp3.html#esp_interrupt">Прерывания в WeMos D1 mini</option>
+            <option VALUE="../pages/esp3.html#esp_oled_Hello world">Подключаем дисплей OLED 128x64</option>
+            <option VALUE="../pages/esp3.html#esp_IR_control">Подключаем ИК приемник Д.У.</option>
+            <option VALUE="../pages/esp3.html#esp_IR_control_blink">Управляем с ИК Д.У. </option>
+            <option VALUE="../pages/esp3.html#esp_ibutton">Считываем код ключа ibutton</option>
+            <option VALUE="../pages/esp4.html#esp_ibutton_blink">Работаем с ключем ibutton</option>
+            <option VALUE="../pages/esp4.html#esp_PWM_blink">Подключаем транзистор MOSFET</option>
+            <option VALUE="../pages/esp4.html#esp_PWM_blink_smoothly">Плавный пуск на MOSFETе</option>
+            <option VALUE="../pages/esp4.html#esp_433_Receive">Считываем коды пульта 433Мгц</option>
+            <option VALUE="../pages/esp4.html#esp_433_Receive_blink">Управляем пультом 433Мгц</option>
+            <option VALUE="../pages/esp5.html#esp_wifi_server_ap">WiFi сервер на WeMos D1 mini</option>
+            <option VALUE="../pages/esp5.html#esp_wifi_server_ap_site">WiFi сервер и сайт на WeMos</option>
+            <option VALUE="../pages/esp5.html#esp_wifi_server_ap_site_led">WiFi сервер и сайт с управлением LED</option>
+            <option VALUE="../pages/esp5.html#esp_WIFI_Client_get">WiFi клиент и сайт в интернете</option>
+          </select></div>
+        </div></td>
+      </tr>
+    </table>
+  </header>
+
+<div class="divdiv d">
+ <a href="../pages/esp.html" class="pagination">1</a>
+ <a href="../pages/esp2.html" class="pagination">2</a>
+ <a href="../pages/esp3.html" class="pagination color">3</a>
+ <a href="../pages/esp4.html" class="pagination">4</a>
+ <a href="../pages/esp5.html" class="pagination">5</a>
+</div>
+
+<div class="divdiv di"><a name="esp_interrupt"></a><p>Давайте в этом примере разберемся с прерываниями микроконтролера ESP8266. Прерывания очень полезная функция в микроконтроллере так как он может выполнять свою прошивку не замечая ничего, крутясь в своих бесконечных циклах как карапуз на карусели, а прерывания то что способно его одернуть и заставить делать то что нам надо. Например у нас есть новогодняя гирлянда которая переливается различными огнями, мы хотим переключить ее в другой режим и тут нам поможет прерывание, оно остановит мигание и мы выполним что хотим. В скетче у нас есть<a href="../pages/esp.html#esp_button"> кнопка </a>  которая будет задействовать прерывание, микроконтроллер все бросит и выполнит функцию прикрепленную к прерыванию, а затем вернется к воим действиям. В функции прерывания есть событие при котором сработает прерывание : FALLING - переход на низкий уровень (замыкание пина на 0), RISING - переход на высокий уровень (подача на пин +3.3 вольта), CHANGE – когда меняется состояние вывода (если было +3.3 вольта и поменялось на 0 или наоборот было 0 стало 3.3 вольта). В ESP8266 прерывания можно настроить практически на любой пин микроконтроллера.  </p>
+
+ <pre class="ide"><code>
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {                           <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+  <span class="ide-platform-function">pinMode</span> (D4, <span class="ide-keyword">OUTPUT</span>);                  <span class="ide-line-comment">// д4 пин настраиваем на выход</span>
+  <span class="ide-platform-function">pinMode</span> (D1, <span class="ide-keyword">INPUT_PULLUP</span>);            <span class="ide-line-comment">// д1 пин настраиваем на вход, с подтяжкой +3.3 вольта на пин</span>
+  attachInterrupt (D1, <span class="ide-platform-function">blink</span>, FALLING);  <span class="ide-line-comment">// включаем прерывание на д1 пине, (пин, выполняемая функция, событие)</span>
+
+}
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>() {                            <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  <span class="ide-platform-function">digitalWrite</span>(D4, 1);                   <span class="ide-line-comment">// светодиод гаснет</span>
+  <span class="ide-platform-function">delay</span>(500);                            <span class="ide-line-comment">// ожидание в течение пол секунды</span>
+  <span class="ide-platform-function">digitalWrite</span>(D4, 0);                   <span class="ide-line-comment">// светодиод загорается</span>
+  <span class="ide-platform-function">delay</span>(500);                            <span class="ide-line-comment">// ожидание в течение пол секунды</span>
+}
+IRAM_ATTR <span class="ide-keyword">void</span> <span class="ide-platform-function">blink</span> () {                <span class="ide-line-comment">// функция выполняемая при прерывании</span>
+  <span class="ide-platform-function">delay</span>(3000);                           <span class="ide-line-comment">// ожидание в течение 3 секунд</span>
+}
+</code></pre>
+
+<img src="../images/esp_button.jpg" class="foc" tabindex="1">
+</div>
+
+
+<div class="divdiv di"><a name="esp_oled_Hello world"></a><p>Подключаем один из самых популярных дисплеев OLED 128x64 0.96 Inch к ЕСП. Данный дислей очень часто встречается в различных проектах так как не дорогой, яркий, работает без подсветки и соответственно потребляет небольшой ток, так же дислей подключается всего по 4 проводам что сильно облегчает работу с ним. Данный дисплей пригодится для часов, игрушек, панелей управления различными устройствами, для вывода ошибок оборудования, моточасов, весов и пр. так как может выводить не только текст но и графику. Подключается дислей по шине I2C в которой всего два провода пин D1-SCL и пин D2-SDA , дисплей питается как от 5 так и от 3.3 вольта что позволяет использовать его как в Ардуино так и в ЕСП. Для нашего скетча необходимо установить две библиотеки одну для шины I2C, вторую для <a href="../files/ESP8266_and_ESP32_OLED_driver_for_SSD1306_displays.zip" download> дисплея </a>, как устанавливать и где скачивать библиотеки есть много информации в интернете. </p>
+
+
+<pre class="ide"><code>
+<span class="ide-system-keyword">#include</span> &lt;Wire.h&gt;                      <span class="ide-line-comment">// Подключаем библиотеку Wire.h для I2C интерфейса</span>
+<span class="ide-system-keyword">#include</span> <span class="ide-string">&quot;SSD1306Wire.h&quot;</span>               <span class="ide-line-comment">// Подключаем библиотеку SSD1306.h для работы с дисплеем</span>
+SSD1306Wire display(0x3c, SDA, SCL);   <span class="ide-line-comment">// (ADDRESS, SDA, SCL) Адрес дисплея на шине I2C</span>
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {                         <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+  display.init();                      <span class="ide-line-comment">// инициализация дисплея</span>
+  display.setFont(ArialMT_Plain_16);   <span class="ide-line-comment">// устанавливаем шрифт на дисплее</span>
+}
+<span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>() {                          <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  display.clear();                     <span class="ide-line-comment">// очистка дисплея от старой записи</span>
+  <span class="ide-platform-function">delay</span>(1000);                         <span class="ide-line-comment">// задержка 1 секунда</span>
+  display.drawString(0, 0, <span class="ide-string">&quot;Hello world&quot;</span>);  <span class="ide-line-comment">// место на дисплее и текст для вывода</span>
+  display.display();                   <span class="ide-line-comment">//передаем на дисплей информацию</span>
+}
+
+</code></pre>
+
+<img src="../images/esp_oled_Hello world.jpg" class="foc" tabindex="1">
+</div>
+
+
+<div class="divdiv di"><a name="esp_IR_control"></a><p> Разбираемся с подключением ИК приемника и работой ИК пультов с ЕСП. ИК пульты очень популярны в различных девайсах так как работать с ними очень просто, у них множество кнопок, и пульты можно использовать любые хоть от телевизора, необязательно использовать пульт из ардуино наборов, из минусов пультов на ИК это прямая видимость между пультом и устройством, работа желательно в помещенни без солнечных прямых лучей. В первом примере считаем информацию с кнопок пульта а во <a href="../pages/esp3.html#esp_IR_control_blink"> втором </a>  будем управлять светодиодом. </p>
+
+  <pre class="ide"><code>
+    <span class="ide-system-keyword">#include</span> &lt;IRrecv.h&gt;                     <span class="ide-line-comment">// подключаем библиотеку для работы с ИК пультом</span>
+    IRrecv irrecv(D5);                      <span class="ide-line-comment">// выставляем пин для сигнала ИК приемника</span>
+    decode_results results;                 <span class="ide-line-comment">// расшифровыванные результаты помещаем в переменную results</span>
+    <span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {                          <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+    <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">begin</span>(9600);                   <span class="ide-line-comment">// настраиваем скорость монитора порта</span>
+    irrecv.enableIRIn();                  <span class="ide-line-comment">// включаем прием сигнала</span>
+  }
+  <span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>() {                           <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  <span class="ide-system-keyword">if</span> (irrecv.decode(&amp;results)) {        <span class="ide-line-comment">// если есть какой нибудь сигнал с пульта</span>
+  <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">println</span>(results.value);      <span class="ide-line-comment">// выводим в монитор порта значение</span>
+  irrecv.resume();                    <span class="ide-line-comment">// получить новое значение</span>
+}
+<span class="ide-platform-function">delay</span>(100);                           <span class="ide-line-comment">// пауза 100 милисекунд</span>
+}
+</code></pre>
+
+
+<br/>
+<p> Подключаем ИК модуль к WeMos D1 mini, можно так же подключить ИК датчик напрямую без модуля например от старого телевизора но надо знать распиновку датчика, в интернете много примеров, так что если нет ИК модуля то можно и обойтись б.у. датчиком или купить в радиомагазине новый.</p>
+<img src="../images/esp_IR_control.jpg" class="foc" tabindex="1">
+<p> Выводим в монитор порта коды кнопок</p>
+<img src="../images/esp_IR_control_2.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+<div class="divdiv di"><a name="esp_IR_control_blink"></a><p>В <a href="../pages/esp3.html#esp_IR_control"> прошлом примере </a>  мы подключали ИК модуль ардуино и получали коды кнопок через WeMos D1 mini, давайте сейчас посмотрим как применять в деле ИК управление. Используя данный пример можно собрать много устройств например часы с настройкой времени через пульт, новогоднюю гирлянду, игрушечный авто на ик управлении и пр. Схема подключения ИК модуля у нас та же, и мы получив с монитора порта в прошлом примере данные с кнопок копируем код одной кнопки и вставляем в нашу новую прошивку и все при нажатии пульта на ту кнопку с которой вставлен код у нас происходит действие мы тушим светодиод, как помним на WeMos D1 mini он инверсный и при подаче +3.3 вольта он погаснет, потом через 2 секунды загорится так заложено в нашей программе, при нажатии на любую другую кнопку ничего не произойдет. </p>
+
+
+
+  <pre class="ide"><code>
+    <span class="ide-system-keyword">#include</span> &lt;IRrecv.h&gt;                     <span class="ide-line-comment">// подключаем библиотеку для работы с ИК пультом</span>
+    IRrecv irrecv(D5);                      <span class="ide-line-comment">// выставляем пин для сигнала ИК приемника</span>
+    decode_results results;                 <span class="ide-line-comment">// расшифровыванные результаты помещаем в переменную results</span>
+    <span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {                          <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+    <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">begin</span>(9600);                   <span class="ide-line-comment">// настраиваем скорость монитора порта</span>
+    irrecv.enableIRIn();                  <span class="ide-line-comment">// включаем прием сигнала</span>
+    <span class="ide-platform-function">pinMode</span>(D4, <span class="ide-keyword">OUTPUT</span>);                  <span class="ide-line-comment">// пин д4 настраиваем на выход, светодиод загорается</span>
+  }
+  <span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>() {                           <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  <span class="ide-system-keyword">if</span> (irrecv.decode(&amp;results)) {        <span class="ide-line-comment">// если есть какой нибудь сигнал с пульта</span>
+  <span class="ide-system-keyword">if</span> (results.value == 33441975) {    <span class="ide-line-comment">// если результат равен 33441975</span>
+  <span class="ide-platform-function">digitalWrite</span>(D4, 1);              <span class="ide-line-comment">// светодиод гаснет</span>
+  <span class="ide-platform-function">delay</span>(2000);                      <span class="ide-line-comment">// пауза 2 секунды</span>
+  <span class="ide-platform-function">digitalWrite</span>(D4, 0);              <span class="ide-line-comment">// светодиод загорается</span>
+}
+irrecv.resume();                    <span class="ide-line-comment">// получить новое значение</span>
+}
+<span class="ide-platform-function">delay</span>(100);                           <span class="ide-line-comment">// пауза 100 милисекунд</span>
+}
+</code></pre>
+
+<img src="../images/esp_IR_control_blink.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+<div class="divdiv di"><a name="esp_ibutton"></a><p>Работаем с ключами ibutton (таблетка) на WeMos D1 mini по протоколу OneWire (ванваир). Данный ключ можно использовать в замках, в автомобильных блокировщиках (иммобилайзерах), в управлении станками где необходим ограниченый доступ и т.д. Ключи ibutton много где применяются так как надежны, недорогие и простые в разработке для них устройств, ведь для считывания даже не нужен какой нибудь отдельный модуль просто два контакта нулевой (GND) и сигнальный на который через резистор 2 килоома подается + 3.3 вольта для работы самого ключа, ведь ключ работает без батареек! В этом скетче мы будем просто считывать код нашего ключа, а в  <a href="../pages/esp4.html#esp_ibutton_blink"> следующем </a>будем делать полезную работу. <a href="../files/OneWire.zip" download> Библиотека OneWire. </a></p>
+
+  <pre class="ide"><code>
+    <span class="ide-system-keyword">#include</span> &lt;OneWire.h&gt;             <span class="ide-line-comment">// подключаем библиотеку для работы с протоколом OneWire (ванваир)</span>
+    OneWire  ds(D2);                 <span class="ide-line-comment">// д2 пин на WeMos D1 mini</span>
+    byte i;                          <span class="ide-line-comment">// создаем переменную для счетчика информации с ключа</span>
+    byte addr[8];                    <span class="ide-line-comment">// создаем переменную для массива с восемью значениями (8 переменных в одной)</span>
+    <span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>(<span class="ide-keyword">void</span>) {               <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
+    <span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">begin</span>(9600);            <span class="ide-line-comment">// настраиваем скорость монитора порта</span>
+  }
+  <span class="ide-keyword">void</span> <span class="ide-system-keyword">loop</span>(<span class="ide-keyword">void</span>) {                <span class="ide-line-comment">// запускаем бесконечную обработку кода (цикл)</span>
+  <span class="ide-system-keyword">if</span> (!ds.search(addr)) {        <span class="ide-line-comment">// если обнулен пин ds(D4) считываем 8 бит в массив, если считалось то идем дальше</span>
+  ds.reset_search();           <span class="ide-line-comment">// останавливаем считывание с ds(D4)</span>
+  <span class="ide-system-keyword">return</span>;                      <span class="ide-line-comment">// прекращаем вычисления</span>
+}
+<span class="ide-system-keyword">for</span> ( i = 0; i &lt; 8; i++) {     <span class="ide-line-comment">// цикл на 8 действий</span>
+<span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">print</span>(addr[i], HEX);  <span class="ide-line-comment">// каждый цикл увеличиваем на 1 адрес в массиве и выводим одно значение в  HEX формате</span>
+<span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">print</span>(<span class="ide-string">&quot; &quot;</span>);           <span class="ide-line-comment">// пробел после бита для монитора порта чтоб лучше читалось</span>
+}
+<span class="ide-platform-class">Serial</span>.<span class="ide-platform-function">println</span>();              <span class="ide-line-comment">// делаем перевод строки в мониторе порта</span>
+ds.reset();                    <span class="ide-line-comment">// обновление считывания с ds(D4)</span>
+<span class="ide-platform-function">delay</span>(1000);                   <span class="ide-line-comment">// пауза 1 секунда</span>
+}
+</code></pre>
+
+<br/>
+<p> Подключаем все по схеме и подносим ключ ненадолго к контактам, можно использовать специальные считыватели в корпусе, но для понимания лучше именно так.</p>
+<img src="../images/esp_ibutton.jpg" class="foc" tabindex="1">
+<br/>
+<p> Выводим в монитор порта код ключа.</p>
+<img src="../images/esp_ibutton_2.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+<div class="divdiv d">
+ <a href="../pages/esp.html" class="pagination">1</a>
+ <a href="../pages/esp2.html" class="pagination">2</a>
+ <a href="../pages/esp3.html" class="pagination color">3</a>
+ <a href="../pages/esp4.html" class="pagination">4</a>
+ <a href="../pages/404.html" class="pagination">5</a>
+</div>
+
+
+
+</body>
+</html>
+
+
