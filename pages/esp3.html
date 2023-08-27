@@ -87,7 +87,7 @@ IRAM_ATTR <span class="ide-keyword">void</span> <span class="ide-platform-functi
 <pre class="ide"><code>
 <span class="ide-system-keyword">#include</span> &lt;Wire.h&gt;                      <span class="ide-line-comment">// Подключаем библиотеку Wire.h для I2C интерфейса</span>
 <span class="ide-system-keyword">#include</span> <span class="ide-string">&quot;SSD1306Wire.h&quot;</span>               <span class="ide-line-comment">// Подключаем библиотеку SSD1306.h для работы с дисплеем</span>
-SSD1306Wire display(0x3c, SDA, SCL);   <span class="ide-line-comment">// (ADDRESS, SDA, SCL) Адрес дисплея на шине I2C</span>
+SSD1306Wire display(0x3c, SDA, SCL);   <span class="ide-line-comment">// (ADDRESS, SDA, SCL) SSD1306Wire display(0x3c, SDA, SCL, GEOMETRY_128_32); </span>
 <span class="ide-keyword">void</span> <span class="ide-system-keyword">setup</span>() {                         <span class="ide-line-comment">// функция настроек и разового ввода данных</span>
   display.init();                      <span class="ide-line-comment">// инициализация дисплея</span>
   display.setFont(ArialMT_Plain_16);   <span class="ide-line-comment">// устанавливаем шрифт на дисплее</span>
