@@ -14,15 +14,233 @@
      <tr>
       <td width="150"><a href="../index.html"><img src="../images/logo.jpg" class="leftfoto"></a></td>
 
-      <td width="700"><p>Потихоньку буду заполнять это пространство :) <br> А пока ссылка на мой старый сайт
-        <a href="https://avtosega.blogspot.com/2022/01/blog-post.html"> Приглашаю!</a></p></td>
 
-      <td>
         <div>
+
+
+
+
+
+
+
+
         </div>
         </div></td>
       </tr>
     </table>
+
+
+<div class="divdiv di"><a name="esp_button"></a><p>Первый вариант многофункциоальной контрольки с осцилографом. Выкладываю как есть, пока 2 функции вольтметр и осцилограф, доделки в процессе. В контрольке есть(будут) функции вольтметр, осцилограф, тест форсунок, генератор ШИМ, частотомер, генератор дпкв 60 -2. </p>
+<img src="../images/arduino_oscil.jpg" class="foc" tabindex="1">
+ <pre>
+  <code style = "color: green"   >
+//сырой скетч с меню вольтметром и осцилом
+#define USE_SSD1306 // Use I2C OLED screen on SSD1306 chipset
+#include <U8g2lib.h>
+const uint8_t bufferSize = 128;
+const uint8_t pinAnalogIn = A7;
+uint8_t buffer[bufferSize];
+U8G2_SH1106_128X32_VISIONOX_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+float val = 0;
+unsigned long timer;
+unsigned long timer2;
+unsigned long timer3;
+unsigned long timer4;
+unsigned long timer5;
+unsigned long timer6;
+unsigned long timer7;
+unsigned long timer8;
+int n = 9;
+int q = 0;
+int w = 3;
+int g = 20;
+int u = 0;
+int e = 0;
+int r = 0;
+int k = 10000;
+int t = 0;
+int m = 5;
+int z = 100;
+void setup() {
+  pinMode(12, INPUT_PULLUP);
+  pinMode(10, INPUT_PULLUP);
+  pinMode(A7, INPUT);
+  // Инициализируем дисплей
+  u8g2.begin();
+  // Очищаем память
+  u8g2.clearBuffer();
+  // Выбираем шрифт
+  u8g2.setFont(u8g2_font_10x20_te); //   u8g2_font_luBIS08_tr  u8g2_font_ncenR08_tr  u8g2_font_4x6_tr
+  // Указываем положение курсора
+  u8g2.setCursor(0, 13);
+  // Выводим строку
+  u8g2.print("<  VIBOR  >");
+  u8g2.setCursor(0, 32);
+  u8g2.print(". . . . . .");
+  // Отсылаем данные на дисплей
+  u8g2.sendBuffer();
+}
+void loop() {
+  if (digitalRead(12) == 0) {
+    q++;
+    u = 0;
+    r = 0;
+    e = 0;
+    delay(500);
+  }
+  if (digitalRead(10) == 0) {
+    m = m + 10;
+    if (m > 35)m = 5;
+    if (m == 5) z = 100;
+    if (m == 15) z = 300;
+    if (m == 25) z = 500;
+    if (m == 35) z = 700;
+    delay(500);
+  }
+  if (u == 0 && q == 1 ) {
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 13);
+    u8g2.print("VOLTMETR");
+    u8g2.setCursor(0, 32);
+    u8g2.print("| . . . . .");
+    u8g2.sendBuffer();
+    timer = millis();
+    u = 1;
+    r = 0;
+  }
+  if (u == 0 && q == 2 ) {
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 13);
+    u8g2.print("OSCILOGRAF");
+    u8g2.setCursor(0, 32);
+    u8g2.print(". | . . . .");
+    u8g2.sendBuffer();
+    timer7 = millis();
+    u = 1;
+    r = 0;
+  }
+  if ( u == 0 && q == 3  ) {
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 13);
+    u8g2.print("SHASTOTOMER");
+    u8g2.setCursor(0, 32);
+    u8g2.print(". . | . . .");
+    u8g2.sendBuffer();
+    timer3 = millis();
+    u = 1;
+  }
+  if ( u == 0 && q == 4  ) {
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 13);
+    u8g2.print("GENERATOR");
+
+    u8g2.setCursor(0, 32);
+    u8g2.print(". . . | . .");
+    u8g2.sendBuffer();
+    timer4 = millis();
+    u = 1;
+  }
+  if ( u == 0 && q == 5  ) {
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 13);
+    u8g2.print("FORSYNKI");
+
+    u8g2.setCursor(0, 32);
+    u8g2.print(". . . . | .");
+    u8g2.sendBuffer();
+    timer5 = millis();
+    u = 1;
+  }
+  if ( u == 0 && q == 6  ) {
+    u8g2.clearBuffer();
+    u8g2.setCursor(0, 13);
+    u8g2.print("DPKV 60 - 2");
+    u8g2.setCursor(0, 32);
+    u8g2.print(". . . . . |");
+    u8g2.sendBuffer();
+    timer6 = millis();
+    u = 1;
+  }
+  if (q >= 7) {
+    q = 1;
+  }
+  ///////////////////////////////////////////////////////////////////////////
+  if (r == 1 && e == 2)  {  // короткий путь до вольтметра
+    if (millis() - timer7 > 500 ) {
+      timer7 = millis();
+      voltmetr();
+    }
+  }
+  if (millis() - timer > 3000 && q == 1 && r == 0)  { // если выбран вольтметр
+    u8g2.clearBuffer();
+    u8g2.sendBuffer();
+    timer = millis();
+    voltmetr();
+  }
+  if (u == 0 && q == 0 && millis() - timer8 > 3000) { // само заходит в вольтметр если ничего не нажато
+    u8g2.clearBuffer();
+    u8g2.sendBuffer();
+    u = 1;
+    q = 1;
+    voltmetr();
+  }
+  ////////////////
+  if (millis() - timer7 > 3000 && q == 2 && r == 0)  { // если выбран осцилограф
+    u8g2.clearBuffer();
+    u8g2.sendBuffer();
+    timer7 = millis();
+    oscilograf();
+  }
+  if (r == 1 && e == 3)  {  // короткий путь до осцилограф
+    oscilograf();
+  }
+}
+////////////////////////////////////////////////////////////////////////////////////////
+void voltmetr() {
+  val = analogRead(A7);
+  val = (50 / 1023.0) * val;
+  u8g2.setCursor(0, 13);
+  u8g2.print("VOLTMETR");
+  u8g2.setCursor(0, 32);
+  u8g2.print(val);
+  u8g2.print(" volt     ");
+  u8g2.sendBuffer();
+  r = 1;
+  e = 2;
+}
+void oscilograf() {
+  uint32_t start = micros();
+  for (uint8_t x = 0; x < bufferSize; ++x) {
+    buffer[x] = map(analogRead(pinAnalogIn), 0, z, u8g2.getDisplayHeight() - 1, 0);
+  }
+  u8g2.firstPage();
+  do {
+    drawScreen(start);
+  } while (u8g2.nextPage());
+  r = 1;
+  e = 3;
+}
+void drawScreen(uint32_t duration) {
+  for (int8_t v = 5; v >= 0; --v) {
+    uint8_t tickY = u8g2.getDisplayHeight() - u8g2.getDisplayHeight() * v / 5;
+    for (uint8_t x = 0; x < u8g2.getDisplayWidth(); x += 8)
+      u8g2.drawPixel(x, tickY);
+  }
+  for (uint8_t x = 1; x < bufferSize; ++x) {
+    u8g2.drawLine(x - 1, buffer[x - 1], x, buffer[x]);
+  }
+  u8g2.setCursor(0, 13);
+  u8g2.print(m);
+}
+</code>
+</pre>
+
+<img src="../images/Arduino_oscilog.jpg" class="foc" tabindex="1">
+</div>
+
+
+
+
   </header>
 
 
@@ -37,7 +255,10 @@
 
 
 <footer>
+    <td width="700"><p>Потихоньку буду заполнять это пространство :) <br> А пока ссылка на мой старый сайт
+        <a href="https://avtosega.blogspot.com/2022/01/blog-post.html"> Приглашаю!</a></p></td>
 
+      <td>
 </footer>
 </body>
 </html>
